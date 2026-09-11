@@ -31,7 +31,7 @@
 
   <div class="wrap">
     <nav class="cats" id="cats"></nav>
-    <div class="services" id="services"></div>
+    <div class="services" id="services"><p class="empty">Cargando servicios...</p></div>
   </div>
 
   <footer>
@@ -60,13 +60,33 @@
 <script src="js/supabase-client.js"></script>
 <script src="js/catalog-data.js"></script>
 <script>
-let currentCat = Object.keys(CATALOG)[0];
+let CATEGORIES = [];
+let currentCat = null;
 let pendingService = null;
+
+async function loadServicios(){
+  const { data, error } = await supabaseClient
+    .from("servicios")
+    .select("*")
+    .order("category")
+    .order("sort_order");
+  if(error){ console.error(error); return []; }
+  return data;
+}
+
+function groupByCategory(list){
+  const map = {};
+  list.forEach(s=>{
+    if(!map[s.category]) map[s.category] = [];
+    map[s.category].push(s);
+  });
+  return map;
+}
 
 function renderCats(){
   const nav = document.getElementById("cats");
   nav.innerHTML = "";
-  Object.keys(CATALOG).forEach(cat=>{
+  CATEGORIES.forEach(cat=>{
     const b = document.createElement("button");
     b.textContent = cat;
     if(cat === currentCat) b.classList.add("active");
@@ -75,25 +95,32 @@ function renderCats(){
   });
 }
 
+let SERVICIOS_BY_CAT = {};
+
 function renderServices(){
   const wrap = document.getElementById("services");
   wrap.innerHTML = "";
-  CATALOG[currentCat].forEach(s=>{
+  const list = SERVICIOS_BY_CAT[currentCat] || [];
+  if(!list.length){
+    wrap.innerHTML = `<p class="empty">Todavía no hay servicios cargados en esta categoría.</p>`;
+    return;
+  }
+  list.forEach(s=>{
     const row = document.createElement("div");
     row.className = "service-row";
     row.innerHTML = `
-      <div class="info"><h3>${s.name}</h3><p>${s.desc}</p></div>
+      <div class="info"><h3>${s.name}</h3><p>${s.description}</p></div>
       <div class="action">
         <div class="price">${money(s.price)}</div>
         <button class="book-btn">Reservar</button>
       </div>`;
-    row.querySelector(".book-btn").onclick = ()=> openModal(s, currentCat);
+    row.querySelector(".book-btn").onclick = ()=> openModal(s);
     wrap.appendChild(row);
   });
 }
 
-function openModal(service, cat){
-  pendingService = {...service, category:cat};
+function openModal(service){
+  pendingService = service;
   document.getElementById("modal-service").textContent = `${service.name} · ${money(service.price)}`;
   document.getElementById("overlay").classList.add("open");
 }
@@ -139,8 +166,15 @@ document.getElementById("booking-form").onsubmit = async (e)=>{
   window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, "_blank");
 };
 
-renderCats();
-renderServices();
+async function init(){
+  const servicios = await loadServicios();
+  SERVICIOS_BY_CAT = groupByCategory(servicios);
+  CATEGORIES = Object.keys(SERVICIOS_BY_CAT);
+  currentCat = CATEGORIES[0] || null;
+  renderCats();
+  renderServices();
+}
+init();
 </script>
 </body>
 </html>
