@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vanesa Centro Estetic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,450;9..144,600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="catalog">
+  <header class="top">
+    <div class="wrap">
+      <div>
+        <div class="brand">Vanesa <span>Centro Estetic</span></div>
+        <div class="loc">📍 Posadas, Misiones</div>
+      </div>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="wrap">
+      <h1>Tu piel, en su mejor versión.</h1>
+      <p>Tratamientos faciales y corporales especializados en acné, manchas y rejuvenecimiento. Reservá tu turno y coordinamos por WhatsApp.</p>
+      <div class="tags"><span>Acné</span><span>Manchas</span><span>Rejuvenecimiento</span><span>Dermatología</span></div>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <nav class="cats" id="cats"></nav>
+    <div class="services" id="services"></div>
+  </div>
+
+  <footer>
+    Vanesa Centro Estetic · Posadas, Misiones
+  </footer>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2>Reservar turno</h2>
+    <p class="sub" id="modal-service"></p>
+    <form id="booking-form">
+      <div class="field"><label>Nombre</label><input type="text" id="f-name" required></div>
+      <div class="field"><label>Fecha</label><input type="date" id="f-date" required></div>
+      <div class="field"><label>Hora</label><input type="time" id="f-time" required></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" id="btn-cancel">Cancelar</button>
+        <button type="submit" class="btn-confirm">Reservar y avisar por WhatsApp</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/catalog-data.js"></script>
+<script>
+let currentCat = Object.keys(CATALOG)[0];
+let pendingService = null;
+
+function renderCats(){
+  const nav = document.getElementById("cats");
+  nav.innerHTML = "";
+  Object.keys(CATALOG).forEach(cat=>{
+    const b = document.createElement("button");
+    b.textContent = cat;
+    if(cat === currentCat) b.classList.add("active");
+    b.onclick = ()=>{ currentCat = cat; renderCats(); renderServices(); };
+    nav.appendChild(b);
+  });
+}
+
+function renderServices(){
+  const wrap = document.getElementById("services");
+  wrap.innerHTML = "";
+  CATALOG[currentCat].forEach(s=>{
+    const row = document.createElement("div");
+    row.className = "service-row";
+    row.innerHTML = `
+      <div class="info"><h3>${s.name}</h3><p>${s.desc}</p></div>
+      <div class="action">
+        <div class="price">${money(s.price)}</div>
+        <button class="book-btn">Reservar</button>
+      </div>`;
+    row.querySelector(".book-btn").onclick = ()=> openModal(s, currentCat);
+    wrap.appendChild(row);
+  });
+}
+
+function openModal(service, cat){
+  pendingService = {...service, category:cat};
+  document.getElementById("modal-service").textContent = `${service.name} · ${money(service.price)}`;
+  document.getElementById("overlay").classList.add("open");
+}
+function closeModal(){
+  document.getElementById("overlay").classList.remove("open");
+  document.getElementById("booking-form").reset();
+}
+document.getElementById("btn-cancel").onclick = closeModal;
+
+function showToast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 3500);
+}
+
+document.getElementById("booking-form").onsubmit = async (e)=>{
+  e.preventDefault();
+  const name = document.getElementById("f-name").value.trim();
+  const date = document.getElementById("f-date").value;
+  const time = document.getElementById("f-time").value;
+  if(!pendingService || !name || !date || !time) return;
+
+  const { error } = await supabaseClient.from("turnos").insert({
+    name, date, time,
+    service: pendingService.name,
+    category: pendingService.category,
+    price: pendingService.price,
+    status: "pendiente",
+  });
+
+  if(error){
+    console.error(error);
+    showToast("Hubo un error al reservar, probá de nuevo.");
+    return;
+  }
+
+  const msg = encodeURIComponent(
+    `Hola! Quiero reservar un turno:\n• Servicio: ${pendingService.name}\n• Fecha: ${date}\n• Hora: ${time}\n• Nombre: ${name}`
+  );
+  closeModal();
+  showToast("Turno registrado. Te llevamos a WhatsApp para confirmar ✨");
+  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, "_blank");
+};
+
+renderCats();
+renderServices();
+</script>
+</body>
+</html>
