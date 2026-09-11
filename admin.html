@@ -61,6 +61,24 @@
   .coming-soon{border:1px dashed var(--line);border-radius:14px;padding:40px 24px;text-align:center;color:var(--ink-soft);}
   .coming-soon b{display:block;color:var(--ink);font-size:16px;margin-bottom:6px;font-family:'Fraunces',serif;}
 
+  .hoy-item{display:flex;align-items:center;gap:18px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:12px;}
+  .hoy-time{font-family:'Fraunces',serif;font-size:22px;color:var(--sage-dark);min-width:70px;}
+  .hoy-info{flex:1;}
+  .hoy-info b{display:block;font-size:15px;cursor:pointer;}
+  .hoy-info b:hover{text-decoration:underline;}
+  .hoy-info span{font-size:13px;color:var(--ink-soft);}
+
+  .rank-list li.clickable{cursor:pointer;}
+  .rank-list li.clickable:hover .rank-name{text-decoration:underline;}
+
+  .cliente-modal{max-width:480px;}
+  .cliente-modal h2{margin-bottom:2px;}
+  .cliente-modal .sub{margin-bottom:18px;}
+  .cliente-modal textarea{width:100%;min-height:80px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-family:inherit;font-size:14px;resize:vertical;}
+  .cliente-history{max-height:180px;overflow-y:auto;margin:14px 0;border-top:1px solid var(--line);padding-top:10px;}
+  .cliente-history .h-row{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--line);}
+  .cliente-history .h-row:last-child{border-bottom:none;}
+
   @media (max-width:760px){
     .admin-layout{flex-direction:column;}
     .sidebar{width:100%;border-right:none;border-bottom:1px solid var(--line);padding:12px 0;flex-direction:row;align-items:center;}
@@ -94,6 +112,10 @@
         <button class="nav-item active" data-section="dashboard">
           <svg viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Dashboard
+        </button>
+        <button class="nav-item" data-section="hoy">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Hoy
         </button>
         <button class="nav-item" data-section="servicios">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -147,6 +169,11 @@
         </div>
       </section>
 
+      <section id="section-hoy" class="admin-section">
+        <h1>Turnos de hoy</h1>
+        <div id="hoy-list"></div>
+      </section>
+
       <section id="section-servicios" class="admin-section">
         <h1>Servicios y precios</h1>
         <div id="servicios-list"></div>
@@ -183,6 +210,20 @@
       </section>
 
     </main>
+  </div>
+</div>
+
+<div class="overlay" id="cliente-overlay">
+  <div class="modal cliente-modal">
+    <h2 id="cliente-nombre"></h2>
+    <p class="sub" id="cliente-resumen"></p>
+    <div class="cliente-history" id="cliente-history"></div>
+    <label style="font-size:13px;color:var(--ink-soft);display:block;margin-bottom:6px;">Notas</label>
+    <textarea id="cliente-notas" placeholder="Ej: alérgica a X producto, prefiere horario de mañana..."></textarea>
+    <div class="modal-actions">
+      <button type="button" class="btn-cancel" id="cliente-cerrar">Cerrar</button>
+      <button type="button" class="btn-confirm" id="cliente-guardar">Guardar notas</button>
+    </div>
   </div>
 </div>
 
@@ -286,7 +327,6 @@ function renderDashboard(){
     <div class="kpi"><div class="label">Servicio más pedido</div><div class="value" style="font-size:16px;">${topService ? topService[0] : "—"}</div></div>
   `;
 
-  // Facturación por mes (siempre todo el histórico, para ver la tendencia completa)
   const byMonth = {};
   ALL_TURNOS.forEach(t=>{
     const k = monthKey(t.date);
@@ -302,14 +342,12 @@ function renderDashboard(){
       <div class="m-label">${m}</div>
     </div>`).join("") : `<div class="empty">Todavía no hay datos para mostrar.</div>`;
 
-  // Top servicios (dentro del período elegido)
   const topServicios = Object.entries(countByService).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const topServiciosEl = document.getElementById("top-servicios");
   topServiciosEl.innerHTML = topServicios.length
     ? topServicios.map(([name,count])=>`<li><span class="rank-name">${name}</span><span class="rank-value">${count} turno${count===1?"":"s"}</span></li>`).join("")
     : `<li class="empty" style="padding:0;">Sin datos en este período.</li>`;
 
-  // Clientas frecuentes (dentro del período elegido)
   const byClient = {};
   list.forEach(t=>{
     if(!byClient[t.name]) byClient[t.name] = { count: 0, total: 0 };
@@ -320,17 +358,99 @@ function renderDashboard(){
   const topClientesEl = document.getElementById("top-clientes");
   topClientesEl.innerHTML = topClientes.length
     ? topClientes.map(([name,d])=>`
-        <li>
+        <li class="clickable" data-name="${name}">
           <span><span class="rank-name">${name}</span><br><span class="rank-sub">${d.count} turno${d.count===1?"":"s"}</span></span>
           <span class="rank-value">${money(d.total)}</span>
         </li>`).join("")
     : `<li class="empty" style="padding:0;">Sin datos en este período.</li>`;
+  topClientesEl.querySelectorAll("li[data-name]").forEach(li=>{
+    li.onclick = ()=> openClienteModal(li.dataset.name);
+  });
 }
+
+/* ---------------- VISTA "HOY" ---------------- */
+function todayStr(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+function renderHoy(){
+  const today = todayStr();
+  const list = ALL_TURNOS.filter(t => t.date === today).sort((a,b)=> a.time.localeCompare(b.time));
+  const wrap = document.getElementById("hoy-list");
+
+  if(!list.length){
+    wrap.innerHTML = `<p class="empty">No hay turnos agendados para hoy.</p>`;
+    return;
+  }
+
+  wrap.innerHTML = list.map(t => `
+    <div class="hoy-item">
+      <div class="hoy-time">${t.time.slice(0,5)}</div>
+      <div class="hoy-info">
+        <b data-name="${t.name}">${t.name}</b>
+        <span>${t.service}  ·  ${money(t.price)}</span>
+      </div>
+      <select class="status-pill status-${t.status}" data-id="${t.id}">
+        <option value="pendiente" ${t.status === "pendiente" ? "selected" : ""}>pendiente</option>
+        <option value="confirmado" ${t.status === "confirmado" ? "selected" : ""}>confirmado</option>
+        <option value="hecho" ${t.status === "hecho" ? "selected" : ""}>hecho</option>
+      </select>
+    </div>
+  `).join("");
+
+  wrap.querySelectorAll("select[data-id]").forEach(sel=>{
+    sel.onchange = async ()=>{
+      await updateStatus(sel.dataset.id, sel.value);
+      sel.className = `status-pill status-${sel.value}`;
+    };
+  });
+  wrap.querySelectorAll(".hoy-info b[data-name]").forEach(el=>{
+    el.onclick = ()=> openClienteModal(el.dataset.name);
+  });
+}
+
+/* ---------------- FICHA DE CLIENTA ---------------- */
+let clienteActual = null;
+
+async function openClienteModal(name){
+  clienteActual = name;
+  document.getElementById("cliente-nombre").textContent = name;
+
+  const historial = ALL_TURNOS.filter(t => t.name === name).sort((a,b)=> b.date.localeCompare(a.date));
+  const totalGastado = historial.reduce((s,t)=> s + t.price, 0);
+  document.getElementById("cliente-resumen").textContent =
+    `${historial.length} turno${historial.length===1?"":"s"} · ${money(totalGastado)} en total`;
+
+  document.getElementById("cliente-history").innerHTML = historial.length
+    ? historial.map(t => `
+        <div class="h-row">
+          <span>${t.date} · ${t.service}</span>
+          <span>${money(t.price)}</span>
+        </div>`).join("")
+    : `<p class="empty" style="padding:0;">Sin turnos registrados.</p>`;
+
+  const { data } = await supabaseClient.from("clientas").select("notas").eq("name", name).maybeSingle();
+  document.getElementById("cliente-notas").value = data?.notas || "";
+
+  document.getElementById("cliente-overlay").classList.add("open");
+}
+
+document.getElementById("cliente-cerrar").onclick = ()=>{
+  document.getElementById("cliente-overlay").classList.remove("open");
+};
+
+document.getElementById("cliente-guardar").onclick = async ()=>{
+  const notas = document.getElementById("cliente-notas").value;
+  await supabaseClient.from("clientas").upsert({ name: clienteActual, notas, updated_at: new Date().toISOString() }, { onConflict: "name" });
+  document.getElementById("cliente-overlay").classList.remove("open");
+};
 
 async function renderTurnos(){
   ALL_TURNOS = await loadTurnos();
   populatePeriodFilter(ALL_TURNOS);
   renderDashboard();
+  renderHoy();
 
   const agenda = document.getElementById("agenda");
   const emptyMsg = document.getElementById("agenda-empty");
