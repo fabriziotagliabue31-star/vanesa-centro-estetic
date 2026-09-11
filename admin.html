@@ -155,13 +155,18 @@ async function renderTurnos(){
         <td>${t.name}</td>
         <td>${t.service}</td>
         <td>${money(t.price)}</td>
-        <td><button class="status-pill status-${t.status}" data-id="${t.id}">${t.status}</button></td>
+        <td>
+          <select class="status-pill status-${t.status}" data-id="${t.id}">
+            <option value="pendiente" ${t.status === "pendiente" ? "selected" : ""}>pendiente</option>
+            <option value="confirmado" ${t.status === "confirmado" ? "selected" : ""}>confirmado</option>
+            <option value="hecho" ${t.status === "hecho" ? "selected" : ""}>hecho</option>
+          </select>
+        </td>
       </tr>`).join("");
-    agenda.querySelectorAll("button[data-id]").forEach(btn=>{
-      btn.onclick = async ()=>{
-        const current = list.find(x=>x.id == btn.dataset.id);
-        const next = current.status === "pendiente" ? "confirmado" : "pendiente";
-        await updateStatus(current.id, next);
+    agenda.querySelectorAll("select[data-id]").forEach(sel=>{
+      sel.onchange = async ()=>{
+        await updateStatus(sel.dataset.id, sel.value);
+        sel.className = `status-pill status-${sel.value}`;
       };
     });
   }
