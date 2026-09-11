@@ -46,7 +46,12 @@
     <form id="booking-form">
       <div class="field"><label>Nombre</label><input type="text" id="f-name" required></div>
       <div class="field"><label>Fecha</label><input type="date" id="f-date" required></div>
-      <div class="field"><label>Hora</label><input type="time" id="f-time" required></div>
+      <div class="field"><label>Hora</label>
+        <select id="f-time" required disabled>
+          <option value="">Elegí primero una fecha</option>
+        </select>
+      </div>
+      <p id="hours-hint" style="font-size:12px;color:var(--ink-soft);margin:-6px 0 0;"></p>
       <div class="modal-actions">
         <button type="button" class="btn-cancel" id="btn-cancel">Cancelar</button>
         <button type="submit" class="btn-confirm">Reservar y avisar por WhatsApp</button>
@@ -60,6 +65,18 @@
 <script src="js/supabase-client.js"></script>
 <script src="js/catalog-data.js"></script>
 <script>
+// Horario de atención por día de la semana (0 = domingo ... 6 = sábado). null = cerrado.
+const BUSINESS_HOURS = {
+  0: null,                    // domingo: cerrado
+  1: { open: "08:00", close: "20:00" }, // lunes
+  2: { open: "08:00", close: "20:00" }, // martes
+  3: { open: "08:00", close: "20:00" }, // miércoles
+  4: { open: "08:00", close: "20:00" }, // jueves
+  5: { open: "08:00", close: "20:00" }, // viernes
+  6: { open: "08:00", close: "12:00" }, // sábado
+};
+const SLOT_MINUTES = 30;
+
 let CATEGORIES = [];
 let currentCat = null;
 let pendingService = null;
@@ -123,12 +140,78 @@ function openModal(service){
   pendingService = service;
   document.getElementById("modal-service").textContent = `${service.name} · ${money(service.price)}`;
   document.getElementById("overlay").classList.add("open");
+  const dateInput = document.getElementById("f-date");
+  const today = new Date().toISOString().slice(0,10);
+  dateInput.min = today;
+  dateInput.value = "";
+  resetTimeSelect("Elegí primero una fecha");
 }
 function closeModal(){
   document.getElementById("overlay").classList.remove("open");
   document.getElementById("booking-form").reset();
+  resetTimeSelect("Elegí primero una fecha");
 }
 document.getElementById("btn-cancel").onclick = closeModal;
+
+function resetTimeSelect(placeholder){
+  const sel = document.getElementById("f-time");
+  sel.innerHTML = `<option value="">${placeholder}</option>`;
+  sel.disabled = true;
+  document.getElementById("hours-hint").textContent = "";
+}
+
+function buildSlots(open, close){
+  const slots = [];
+  let [h, m] = open.split(":").map(Number);
+  const [ch, cm] = close.split(":").map(Number);
+  while (h < ch || (h === ch && m < cm)) {
+    slots.push(`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`);
+    m += SLOT_MINUTES;
+    if (m >= 60) { m -= 60; h += 1; }
+  }
+  return slots;
+}
+
+async function getBookedTimes(date){
+  const { data, error } = await supabaseClient
+    .from("turnos")
+    .select("time")
+    .eq("date", date);
+  if(error){ console.error(error); return []; }
+  // normalizar a "HH:MM" (Supabase puede devolver "HH:MM:SS")
+  return data.map(t => t.time.slice(0,5));
+}
+
+async function updateTimeSlots(){
+  const date = document.getElementById("f-date").value;
+  if(!date) { resetTimeSelect("Elegí primero una fecha"); return; }
+
+  const weekday = new Date(date + "T00:00:00").getDay();
+  const hours = BUSINESS_HOURS[weekday];
+  const hint = document.getElementById("hours-hint");
+
+  if(!hours){
+    resetTimeSelect("Cerrado ese día");
+    hint.textContent = "Ese día no atendemos. Elegí otra fecha.";
+    return;
+  }
+
+  hint.textContent = `Atendemos de ${hours.open} a ${hours.close} ese día.`;
+
+  const allSlots = buildSlots(hours.open, hours.close);
+  const booked = await getBookedTimes(date);
+  const free = allSlots.filter(s => !booked.includes(s));
+
+  const sel = document.getElementById("f-time");
+  if(!free.length){
+    sel.innerHTML = `<option value="">No quedan horarios libres ese día</option>`;
+    sel.disabled = true;
+    return;
+  }
+  sel.innerHTML = `<option value="">Elegí un horario</option>` + free.map(s => `<option value="${s}">${s}</option>`).join("");
+  sel.disabled = false;
+}
+document.getElementById("f-date").addEventListener("change", updateTimeSlots);
 
 function showToast(msg){
   const t = document.getElementById("toast");
@@ -143,6 +226,14 @@ document.getElementById("booking-form").onsubmit = async (e)=>{
   const date = document.getElementById("f-date").value;
   const time = document.getElementById("f-time").value;
   if(!pendingService || !name || !date || !time) return;
+
+  // Chequeo final por si alguien más reservó ese horario justo ahora
+  const stillFree = !(await getBookedTimes(date)).includes(time);
+  if(!stillFree){
+    showToast("Uy, justo se ocupó ese horario. Elegí otro.");
+    await updateTimeSlots();
+    return;
+  }
 
   const { error } = await supabaseClient.from("turnos").insert({
     name, date, time,
