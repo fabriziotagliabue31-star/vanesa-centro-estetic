@@ -79,6 +79,13 @@
   .cliente-history .h-row{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--line);}
   .cliente-history .h-row:last-child{border-bottom:none;}
 
+  .clientas-search{width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:8px;font-family:inherit;font-size:14px;margin-bottom:16px;}
+  .clientas-table-row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--line);cursor:pointer;}
+  .clientas-table-row:hover .cli-name{text-decoration:underline;}
+  .clientas-table-row .cli-name{font-size:14px;color:var(--ink);}
+  .clientas-table-row .cli-sub{font-size:12px;color:var(--ink-soft);}
+  .clientas-table-row .cli-value{font-size:14px;color:var(--sage-dark);font-weight:500;white-space:nowrap;}
+
   @media (max-width:760px){
     .admin-layout{flex-direction:column;}
     .sidebar{width:100%;border-right:none;border-bottom:1px solid var(--line);padding:12px 0;flex-direction:row;align-items:center;}
@@ -116,6 +123,10 @@
         <button class="nav-item" data-section="hoy">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Hoy
+        </button>
+        <button class="nav-item" data-section="clientas">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c1-3.5 4-5 7-5s6 1.5 7 5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Clientas
         </button>
         <button class="nav-item" data-section="servicios">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -172,6 +183,12 @@
       <section id="section-hoy" class="admin-section">
         <h1>Turnos de hoy</h1>
         <div id="hoy-list"></div>
+      </section>
+
+      <section id="section-clientas" class="admin-section">
+        <h1>Clientas</h1>
+        <input type="text" class="clientas-search" id="clientas-search" placeholder="Buscar por nombre...">
+        <div id="clientas-list"></div>
       </section>
 
       <section id="section-servicios" class="admin-section">
@@ -410,6 +427,45 @@ function renderHoy(){
   });
 }
 
+/* ---------------- SECCION "CLIENTAS" ---------------- */
+function renderClientasSection(filterText = ""){
+  const byClient = {};
+  ALL_TURNOS.forEach(t=>{
+    if(!byClient[t.name]) byClient[t.name] = { count: 0, total: 0, lastDate: t.date };
+    byClient[t.name].count += 1;
+    byClient[t.name].total += t.price;
+    if(t.date > byClient[t.name].lastDate) byClient[t.name].lastDate = t.date;
+  });
+
+  const term = filterText.trim().toLowerCase();
+  const rows = Object.entries(byClient)
+    .filter(([name]) => name.toLowerCase().includes(term))
+    .sort((a,b)=> b[1].lastDate.localeCompare(a[1].lastDate));
+
+  const wrap = document.getElementById("clientas-list");
+  if(!rows.length){
+    wrap.innerHTML = `<p class="empty">${ALL_TURNOS.length ? "No se encontraron clientas con ese nombre." : "Todavía no hay turnos cargados."}</p>`;
+    return;
+  }
+
+  wrap.innerHTML = rows.map(([name,d])=>`
+    <div class="clientas-table-row" data-name="${name}">
+      <div>
+        <div class="cli-name">${name}</div>
+        <div class="cli-sub">${d.count} turno${d.count===1?"":"s"} · última visita ${d.lastDate}</div>
+      </div>
+      <div class="cli-value">${money(d.total)}</div>
+    </div>
+  `).join("");
+
+  wrap.querySelectorAll(".clientas-table-row").forEach(row=>{
+    row.onclick = ()=> openClienteModal(row.dataset.name);
+  });
+}
+document.getElementById("clientas-search").addEventListener("input", (e)=>{
+  renderClientasSection(e.target.value);
+});
+
 /* ---------------- FICHA DE CLIENTA ---------------- */
 let clienteActual = null;
 
@@ -451,6 +507,7 @@ async function renderTurnos(){
   populatePeriodFilter(ALL_TURNOS);
   renderDashboard();
   renderHoy();
+  renderClientasSection(document.getElementById("clientas-search").value);
 
   const agenda = document.getElementById("agenda");
   const emptyMsg = document.getElementById("agenda-empty");
