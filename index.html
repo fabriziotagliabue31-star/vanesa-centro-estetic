@@ -22,15 +22,19 @@
   </header>
 
   <section class="hero">
-    <div class="wrap">
-      <h1>Tu piel, en su mejor versión.</h1>
-      <p>Tratamientos faciales y corporales especializados en acné, manchas y rejuvenecimiento. Reservá tu turno y coordinamos por WhatsApp.</p>
-      <div class="tags"><span>Acné</span><span>Manchas</span><span>Rejuvenecimiento</span><span>Dermatología</span></div>
+    <div class="wrap hero-grid">
+      <div>
+        <h1>Tu piel, en su mejor versión.</h1>
+        <p>Tratamientos faciales y corporales especializados en acné, manchas y rejuvenecimiento. Reservá tu turno y coordinamos por WhatsApp.</p>
+        <div class="tags"><span>Acné</span><span>Manchas</span><span>Rejuvenecimiento</span><span>Dermatología</span></div>
+      </div>
+      <img class="hero-photo" src="https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?auto=format&fit=crop&w=1200&q=80" alt="Tratamiento facial">
     </div>
   </section>
 
   <div class="wrap">
     <nav class="cats" id="cats"></nav>
+    <img class="cat-banner" id="cat-banner" src="" alt="">
     <div class="services" id="services"><p class="empty">Cargando servicios...</p></div>
   </div>
 
@@ -100,6 +104,13 @@ function groupByCategory(list){
   return map;
 }
 
+const CATEGORY_IMAGES = {
+  "Faciales": "https://images.unsplash.com/photo-1643684391140-c5056cfd3436?auto=format&fit=crop&w=1000&q=80",
+  "Corporales": "https://images.unsplash.com/photo-1700522924565-9fad1c05469e?auto=format&fit=crop&w=1000&q=80",
+  "T. Reductor": "https://images.unsplash.com/photo-1620051844584-15ac31d5fccd?auto=format&fit=crop&w=1000&q=80",
+  "Dermatología": "https://images.unsplash.com/photo-1713085085470-fba013d67e65?auto=format&fit=crop&w=1000&q=80",
+};
+
 function renderCats(){
   const nav = document.getElementById("cats");
   nav.innerHTML = "";
@@ -110,6 +121,14 @@ function renderCats(){
     b.onclick = ()=>{ currentCat = cat; renderCats(); renderServices(); };
     nav.appendChild(b);
   });
+  const banner = document.getElementById("cat-banner");
+  if(CATEGORY_IMAGES[currentCat]){
+    banner.src = CATEGORY_IMAGES[currentCat];
+    banner.alt = currentCat;
+    banner.style.display = "block";
+  } else {
+    banner.style.display = "none";
+  }
 }
 
 let SERVICIOS_BY_CAT = {};
