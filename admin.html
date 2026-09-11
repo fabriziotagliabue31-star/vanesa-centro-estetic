@@ -56,8 +56,14 @@
 <body>
 
 <div id="gate" class="wrap" style="padding-top:80px;max-width:360px;">
-  <h1 style="font-size:22px;">Acceso al panel</h1>
-  <p style="color:var(--ink-soft);font-size:14px;">Este link es privado. Si no sos Vanesa, cerrá esta página.</p>
+  <h1 style="font-size:22px;margin-bottom:6px;">Iniciar sesión</h1>
+  <p style="color:var(--ink-soft);font-size:14px;margin-bottom:20px;">Panel privado de Vanesa Centro Estetic.</p>
+  <form id="login-form">
+    <div class="field"><label>Email</label><input type="email" id="login-email" required></div>
+    <div class="field"><label>Contraseña</label><input type="password" id="login-password" required></div>
+    <p id="login-error" style="color:var(--berry);font-size:13px;display:none;margin:-6px 0 14px;">Email o contraseña incorrectos.</p>
+    <button type="submit" class="btn-confirm" style="width:100%;padding:12px;border-radius:8px;border:none;font-size:14px;">Entrar</button>
+  </form>
 </div>
 
 <div id="admin-app" style="display:none;">
@@ -70,6 +76,7 @@
         <button class="nav-item" data-section="turnos">📅 Turnos</button>
         <button class="nav-item disabled" data-section="productos" disabled>🧴 Productos <span class="tag">Próximamente</span></button>
       </nav>
+      <button id="logout-btn" style="margin:20px 21px 0;background:none;border:none;color:var(--ink-soft);font-size:13px;cursor:pointer;text-decoration:underline;padding:0;">Cerrar sesión</button>
     </aside>
 
     <main class="main-content">
@@ -129,18 +136,33 @@
 <script src="js/supabase-client.js"></script>
 <script src="js/catalog-data.js"></script>
 <script>
-// ⚠️ Cambiar esta clave y usarla solo en el link que le compartís a Vanesa:
-// admin.html?key=TU-CLAVE
-const ADMIN_KEY = "vanesa2026";
-
-const params = new URLSearchParams(location.search);
-if (params.get("key") !== ADMIN_KEY) {
-  document.getElementById("gate").style.display = "block";
-} else {
-  document.getElementById("gate").style.display = "none";
-  document.getElementById("admin-app").style.display = "block";
-  init();
+async function checkSession(){
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session) {
+    document.getElementById("gate").style.display = "none";
+    document.getElementById("admin-app").style.display = "block";
+    init();
+  } else {
+    document.getElementById("gate").style.display = "block";
+    document.getElementById("admin-app").style.display = "none";
+  }
 }
+
+document.getElementById("login-form").onsubmit = async (e)=>{
+  e.preventDefault();
+  const email = document.getElementById("login-email").value.trim();
+  const password = document.getElementById("login-password").value;
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  document.getElementById("login-error").style.display = error ? "block" : "none";
+  if (!error) checkSession();
+};
+
+document.getElementById("logout-btn").onclick = async ()=>{
+  await supabaseClient.auth.signOut();
+  location.reload();
+};
+
+checkSession();
 
 /* ---------------- NAVEGACION ---------------- */
 document.querySelectorAll(".nav-item").forEach(btn=>{
