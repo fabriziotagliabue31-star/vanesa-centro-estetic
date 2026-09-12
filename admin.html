@@ -86,6 +86,42 @@
   .clientas-table-row .cli-sub{font-size:12px;color:var(--ink-soft);}
   .clientas-table-row .cli-value{font-size:14px;color:var(--sage-dark);font-weight:500;white-space:nowrap;}
 
+  .calendar-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  .calendar-header h2{font-size:16px;margin:0;text-transform:capitalize;}
+  .calendar-nav button{background:none;border:1px solid var(--line);border-radius:8px;padding:6px 11px;cursor:pointer;font-size:14px;color:var(--ink-soft);font-family:inherit;}
+  .calendar-nav button:hover{background:var(--bg);}
+  .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+  .calendar-weekday{font-size:11px;color:var(--ink-soft);text-align:center;padding-bottom:4px;text-transform:uppercase;letter-spacing:.03em;}
+  .calendar-day{min-height:82px;border:1px solid var(--line);border-radius:10px;padding:6px;background:var(--surface);cursor:pointer;display:flex;flex-direction:column;gap:3px;}
+  .calendar-day:hover{border-color:var(--sage);}
+  .calendar-day.empty{border:none;background:transparent;cursor:default;}
+  .calendar-day.today{border-color:var(--berry);border-width:2px;}
+  .calendar-day .day-num{font-size:12px;color:var(--ink-soft);}
+  .calendar-day .day-chip{font-size:10.5px;background:var(--bg);border-radius:5px;padding:2px 5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .calendar-day .day-more{font-size:10px;color:var(--ink-soft);}
+
+  .btn-recordar{background:none;border:1px solid var(--sage);color:var(--sage-dark);border-radius:100px;padding:4px 11px;font-size:11px;cursor:pointer;font-family:inherit;white-space:nowrap;}
+  .btn-recordar:hover{background:var(--sage);color:#fff;}
+  .btn-recordar[disabled]{opacity:.4;cursor:default;}
+  .btn-recordar[disabled]:hover{background:none;color:var(--sage-dark);}
+
+  .dia-modal{max-width:440px;}
+  .dia-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+  .dia-row:last-child{border-bottom:none;}
+  .dia-row .dia-time{font-family:'Fraunces',serif;font-size:16px;color:var(--sage-dark);min-width:50px;}
+  .dia-row .dia-info{flex:1;min-width:120px;}
+  .dia-row .dia-info b{display:block;font-size:14px;}
+  .dia-row .dia-info span{font-size:12px;color:var(--ink-soft);}
+
+  select.empleada-select{border:1px solid var(--line);border-radius:100px;padding:5px 10px;font-size:11.5px;font-family:inherit;color:var(--ink-soft);background:var(--surface);cursor:pointer;}
+
+  .comisiones-week{margin-bottom:20px;}
+  .comisiones-table{width:100%;border-collapse:collapse;}
+  .comisiones-table th{text-align:left;font-size:12px;color:var(--ink-soft);font-weight:500;padding:8px 6px;border-bottom:1px solid var(--line);}
+  .comisiones-table td{padding:13px 6px;border-bottom:1px solid var(--line);font-size:14px;}
+  .comisiones-table tr.total-row td{font-weight:600;border-top:2px solid var(--ink);border-bottom:none;}
+  .comisiones-note{font-size:12px;color:var(--ink-soft);margin-top:14px;}
+
   @media (max-width:760px){
     .admin-layout{flex-direction:column;}
     .sidebar{width:100%;border-right:none;border-bottom:1px solid var(--line);padding:12px 0;flex-direction:row;align-items:center;}
@@ -135,6 +171,10 @@
         <button class="nav-item" data-section="turnos">
           <svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 9.5h16M8 3v3M16 3v3" stroke-linecap="round"/></svg>
           Turnos
+        </button>
+        <button class="nav-item" data-section="comisiones">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 15l6-6M9.5 9.5h.01M14.5 14.5h.01" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Comisiones
         </button>
         <button class="nav-item disabled" data-section="productos" disabled>
           <svg viewBox="0 0 24 24"><path d="M4 7.5 12 4l8 3.5v9L12 20l-8-3.5v-9Z" stroke-linejoin="round"/><path d="M4 7.5 12 11l8-3.5M12 11v9" stroke-linejoin="round"/></svg>
@@ -211,11 +251,31 @@
 
       <section id="section-turnos" class="admin-section">
         <h1>Agenda de turnos</h1>
+
+        <div class="card" style="margin-bottom:24px;">
+          <div class="calendar-header">
+            <div class="calendar-nav"><button id="cal-prev">‹</button></div>
+            <h2 id="cal-month-label"></h2>
+            <div class="calendar-nav"><button id="cal-next">›</button></div>
+          </div>
+          <div class="calendar-grid" id="calendar-grid"></div>
+        </div>
+
         <table>
-          <thead><tr><th>Fecha</th><th>Hora</th><th>Cliente</th><th>Servicio</th><th>Precio</th><th>Estado</th></tr></thead>
+          <thead><tr><th>Fecha</th><th>Hora</th><th>Cliente</th><th>Servicio</th><th>Empleada</th><th>Precio</th><th></th><th>Estado</th></tr></thead>
           <tbody id="agenda"></tbody>
         </table>
         <div id="agenda-empty" class="empty" style="display:none;">Todavía no hay turnos cargados.</div>
+      </section>
+
+      <section id="section-comisiones" class="admin-section">
+        <h1>Comisiones</h1>
+        <select class="period-filter comisiones-week" id="week-filter"></select>
+        <table class="comisiones-table">
+          <thead><tr><th>Empleada</th><th>Turnos hechos</th><th>Facturado</th><th>Comisión (30%)</th></tr></thead>
+          <tbody id="comisiones-body"></tbody>
+        </table>
+        <p class="comisiones-note">Solo se cuentan los turnos marcados como "hecho". Los turnos sin empleada asignada no entran en el cálculo.</p>
       </section>
 
       <section id="section-productos" class="admin-section">
@@ -227,6 +287,16 @@
       </section>
 
     </main>
+  </div>
+</div>
+
+<div class="overlay" id="dia-overlay">
+  <div class="modal dia-modal">
+    <h2 id="dia-titulo"></h2>
+    <div id="dia-turnos"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-cancel" id="dia-cerrar" style="flex:none;padding:10px 18px;">Cerrar</button>
+    </div>
   </div>
 </div>
 
@@ -344,6 +414,7 @@ function renderDashboard(){
     <div class="kpi"><div class="label">Servicio más pedido</div><div class="value" style="font-size:16px;">${topService ? topService[0] : "—"}</div></div>
   `;
 
+  // Facturación por mes (siempre todo el histórico, para ver la tendencia completa)
   const byMonth = {};
   ALL_TURNOS.forEach(t=>{
     const k = monthKey(t.date);
@@ -359,12 +430,14 @@ function renderDashboard(){
       <div class="m-label">${m}</div>
     </div>`).join("") : `<div class="empty">Todavía no hay datos para mostrar.</div>`;
 
+  // Top servicios (dentro del período elegido)
   const topServicios = Object.entries(countByService).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const topServiciosEl = document.getElementById("top-servicios");
   topServiciosEl.innerHTML = topServicios.length
     ? topServicios.map(([name,count])=>`<li><span class="rank-name">${name}</span><span class="rank-value">${count} turno${count===1?"":"s"}</span></li>`).join("")
     : `<li class="empty" style="padding:0;">Sin datos en este período.</li>`;
 
+  // Clientas frecuentes (dentro del período elegido)
   const byClient = {};
   list.forEach(t=>{
     if(!byClient[t.name]) byClient[t.name] = { count: 0, total: 0 };
@@ -408,6 +481,8 @@ function renderHoy(){
         <b data-name="${t.name}">${t.name}</b>
         <span>${t.service}  ·  ${money(t.price)}</span>
       </div>
+      ${empleadaSelectHtml(t)}
+      ${recordarBtnHtml(t)}
       <select class="status-pill status-${t.status}" data-id="${t.id}">
         <option value="pendiente" ${t.status === "pendiente" ? "selected" : ""}>pendiente</option>
         <option value="confirmado" ${t.status === "confirmado" ? "selected" : ""}>confirmado</option>
@@ -425,6 +500,225 @@ function renderHoy(){
   wrap.querySelectorAll(".hoy-info b[data-name]").forEach(el=>{
     el.onclick = ()=> openClienteModal(el.dataset.name);
   });
+  bindRecordarButtons(wrap);
+  bindEmpleadaSelects(wrap);
+}
+
+/* ---------------- EMPLEADAS ---------------- */
+// Nombres provisorios - se cambian por los reales cuando los tengamos
+const EMPLEADAS = ["Empleada 1", "Empleada 2", "Empleada 3"];
+const COMISION_PORCENTAJE = 0.30;
+
+function empleadaSelectHtml(t){
+  const opciones = [`<option value="" ${!t.empleada ? "selected" : ""}>Sin asignar</option>`]
+    .concat(EMPLEADAS.map(e => `<option value="${e}" ${t.empleada === e ? "selected" : ""}>${e}</option>`));
+  return `<select class="empleada-select" data-empleada-id="${t.id}">${opciones.join("")}</select>`;
+}
+
+function bindEmpleadaSelects(container){
+  container.querySelectorAll("[data-empleada-id]").forEach(sel=>{
+    sel.onchange = async ()=>{
+      await supabaseClient.from("turnos").update({ empleada: sel.value || null }).eq("id", sel.dataset.empleadaId);
+    };
+  });
+}
+
+/* ---------------- RECORDATORIO POR WHATSAPP ---------------- */
+function recordarBtnHtml(t){
+  if(!t.phone) return `<button class="btn-recordar" disabled title="Esta clienta no cargó teléfono">Sin tel.</button>`;
+  return `<button class="btn-recordar" data-recordar-id="${t.id}">Recordar</button>`;
+}
+
+function bindRecordarButtons(container){
+  container.querySelectorAll("[data-recordar-id]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const t = ALL_TURNOS.find(x => x.id == btn.dataset.recordarId);
+      if(!t) return;
+      const msg = encodeURIComponent(
+        `Hola ${t.name}! Te escribimos de Vanesa Centro Estetic para recordarte tu turno de ${t.service} el ${t.date} a las ${t.time.slice(0,5)}. ¡Te esperamos!`
+      );
+      window.open(`https://wa.me/${normalizePhone(t.phone)}?text=${msg}`, "_blank");
+    };
+  });
+}
+
+/* ---------------- CALENDARIO VISUAL ---------------- */
+let calendarMonth = new Date(); // primer dia del mes en pantalla
+calendarMonth.setDate(1);
+
+document.getElementById("cal-prev").onclick = ()=>{
+  calendarMonth.setMonth(calendarMonth.getMonth() - 1);
+  renderCalendar();
+};
+document.getElementById("cal-next").onclick = ()=>{
+  calendarMonth.setMonth(calendarMonth.getMonth() + 1);
+  renderCalendar();
+};
+
+function renderCalendar(){
+  const label = calendarMonth.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
+  document.getElementById("cal-month-label").textContent = label;
+
+  const year = calendarMonth.getFullYear();
+  const month = calendarMonth.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  // Lunes = 0 ... Domingo = 6
+  const startOffset = (firstDay.getDay() + 6) % 7;
+  const today = todayStr();
+
+  const turnosByDay = {};
+  ALL_TURNOS.forEach(t=>{
+    if(monthValue(t.date) === `${year}-${String(month+1).padStart(2,"0")}`){
+      const day = Number(t.date.slice(8,10));
+      if(!turnosByDay[day]) turnosByDay[day] = [];
+      turnosByDay[day].push(t);
+    }
+  });
+
+  const weekdayLabels = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+  let html = weekdayLabels.map(d => `<div class="calendar-weekday">${d}</div>`).join("");
+
+  for(let i=0; i<startOffset; i++) html += `<div class="calendar-day empty"></div>`;
+
+  for(let day=1; day<=daysInMonth; day++){
+    const dateStr = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    const dayTurnos = (turnosByDay[day] || []).sort((a,b)=> a.time.localeCompare(b.time));
+    const isToday = dateStr === today;
+    const chips = dayTurnos.slice(0,3).map(t => `<div class="day-chip">${t.time.slice(0,5)} ${t.name}</div>`).join("");
+    const more = dayTurnos.length > 3 ? `<div class="day-more">+${dayTurnos.length - 3} más</div>` : "";
+    html += `
+      <div class="calendar-day${isToday ? " today" : ""}" data-date="${dateStr}">
+        <div class="day-num">${day}</div>
+        ${chips}
+        ${more}
+      </div>`;
+  }
+
+  document.getElementById("calendar-grid").innerHTML = html;
+  document.querySelectorAll(".calendar-day[data-date]").forEach(cell=>{
+    cell.onclick = ()=> openDiaModal(cell.dataset.date);
+  });
+}
+
+function openDiaModal(dateStr){
+  const list = ALL_TURNOS.filter(t => t.date === dateStr).sort((a,b)=> a.time.localeCompare(b.time));
+  const label = new Date(dateStr + "T00:00:00").toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+  document.getElementById("dia-titulo").textContent = label;
+
+  const wrap = document.getElementById("dia-turnos");
+  wrap.innerHTML = list.length ? list.map(t => `
+    <div class="dia-row">
+      <div class="dia-time">${t.time.slice(0,5)}</div>
+      <div class="dia-info">
+        <b>${t.name}</b>
+        <span>${t.service} · ${money(t.price)}</span>
+      </div>
+      ${empleadaSelectHtml(t)}
+      ${recordarBtnHtml(t)}
+      <select class="status-pill status-${t.status}" data-id="${t.id}">
+        <option value="pendiente" ${t.status === "pendiente" ? "selected" : ""}>pendiente</option>
+        <option value="confirmado" ${t.status === "confirmado" ? "selected" : ""}>confirmado</option>
+        <option value="hecho" ${t.status === "hecho" ? "selected" : ""}>hecho</option>
+      </select>
+    </div>
+  `).join("") : `<p class="empty">No hay turnos este día.</p>`;
+
+  wrap.querySelectorAll("select[data-id]").forEach(sel=>{
+    sel.onchange = async ()=>{
+      await updateStatus(sel.dataset.id, sel.value);
+      sel.className = `status-pill status-${sel.value}`;
+    };
+  });
+  bindRecordarButtons(wrap);
+  bindEmpleadaSelects(wrap);
+
+  document.getElementById("dia-overlay").classList.add("open");
+}
+document.getElementById("dia-cerrar").onclick = ()=>{
+  document.getElementById("dia-overlay").classList.remove("open");
+};
+
+/* ---------------- COMISIONES ---------------- */
+let selectedWeek = null;
+
+// Lunes de la semana que contiene la fecha dada
+function weekStart(dateStr){
+  const d = new Date(dateStr + "T00:00:00");
+  const day = (d.getDay() + 6) % 7; // 0 = lunes
+  d.setDate(d.getDate() - day);
+  return d;
+}
+function weekKey(dateStr){
+  const s = weekStart(dateStr);
+  return `${s.getFullYear()}-${String(s.getMonth()+1).padStart(2,"0")}-${String(s.getDate()).padStart(2,"0")}`;
+}
+function weekLabel(key){
+  const start = new Date(key + "T00:00:00");
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  const fmt = (d) => d.toLocaleDateString("es-AR", { day: "numeric", month: "short" });
+  return `Semana del ${fmt(start)} al ${fmt(end)}`;
+}
+
+function populateWeekFilter(){
+  const hechos = ALL_TURNOS.filter(t => t.status === "hecho");
+  const weeks = [...new Set(hechos.map(t => weekKey(t.date)))].sort().reverse();
+  const sel = document.getElementById("week-filter");
+  const prev = sel.value || selectedWeek;
+
+  if(!weeks.length){
+    sel.innerHTML = `<option value="">Sin turnos hechos todavía</option>`;
+    selectedWeek = "";
+    return;
+  }
+
+  sel.innerHTML = weeks.map(k => `<option value="${k}">${weekLabel(k)}</option>`).join("");
+  selectedWeek = weeks.includes(prev) ? prev : weeks[0];
+  sel.value = selectedWeek;
+}
+document.getElementById("week-filter").addEventListener("change", (e)=>{
+  selectedWeek = e.target.value;
+  renderComisiones();
+});
+
+function renderComisiones(){
+  populateWeekFilter();
+  const tbody = document.getElementById("comisiones-body");
+
+  if(!selectedWeek){
+    tbody.innerHTML = `<tr><td colspan="4" class="empty">Todavía no hay turnos marcados como "hecho".</td></tr>`;
+    return;
+  }
+
+  const turnosSemana = ALL_TURNOS.filter(t => t.status === "hecho" && weekKey(t.date) === selectedWeek);
+
+  const filas = EMPLEADAS.map(nombre => {
+    const suyos = turnosSemana.filter(t => t.empleada === nombre);
+    const facturado = suyos.reduce((s,t)=> s + t.price, 0);
+    const comision = Math.round(facturado * COMISION_PORCENTAJE);
+    return { nombre, count: suyos.length, facturado, comision };
+  });
+
+  const totalFacturado = filas.reduce((s,f)=> s + f.facturado, 0);
+  const totalComision = filas.reduce((s,f)=> s + f.comision, 0);
+  const sinAsignar = turnosSemana.filter(t => !t.empleada).length;
+
+  tbody.innerHTML = filas.map(f => `
+    <tr>
+      <td>${f.nombre}</td>
+      <td>${f.count}</td>
+      <td>${money(f.facturado)}</td>
+      <td>${money(f.comision)}</td>
+    </tr>
+  `).join("") + `
+    <tr class="total-row">
+      <td>Total</td>
+      <td>${turnosSemana.length - sinAsignar}</td>
+      <td>${money(totalFacturado)}</td>
+      <td>${money(totalComision)}</td>
+    </tr>
+  ` + (sinAsignar ? `<tr><td colspan="4" class="empty">${sinAsignar} turno${sinAsignar===1?"":"s"} hecho${sinAsignar===1?"":"s"} sin empleada asignada, no entra${sinAsignar===1?"":"n"} en el cálculo.</td></tr>` : "");
 }
 
 /* ---------------- SECCION "CLIENTAS" ---------------- */
@@ -522,7 +816,9 @@ async function renderTurnos(){
         <td>${t.time}</td>
         <td>${t.name}</td>
         <td>${t.service}</td>
+        <td>${empleadaSelectHtml(t)}</td>
         <td>${money(t.price)}</td>
+        <td>${recordarBtnHtml(t)}</td>
         <td>
           <select class="status-pill status-${t.status}" data-id="${t.id}">
             <option value="pendiente" ${t.status === "pendiente" ? "selected" : ""}>pendiente</option>
@@ -537,7 +833,11 @@ async function renderTurnos(){
         sel.className = `status-pill status-${sel.value}`;
       };
     });
+    bindRecordarButtons(agenda);
+    bindEmpleadaSelects(agenda);
   }
+  renderCalendar();
+  renderComisiones();
 }
 
 /* ---------------- SERVICIOS ---------------- */
