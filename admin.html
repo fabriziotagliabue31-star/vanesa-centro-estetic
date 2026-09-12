@@ -121,6 +121,15 @@
   .comisiones-table td{padding:13px 6px;border-bottom:1px solid var(--line);font-size:14px;}
   .comisiones-table tr.total-row td{font-weight:600;border-top:2px solid var(--ink);border-bottom:none;}
   .comisiones-note{font-size:12px;color:var(--ink-soft);margin-top:14px;}
+  .comisiones-table tr.emp-row{cursor:pointer;}
+  .comisiones-table tr.emp-row:hover{background:var(--bg);}
+  .comisiones-table tr.emp-row .chevron{display:inline-block;margin-right:6px;font-size:11px;color:var(--ink-soft);transition:transform .15s;}
+  .comisiones-table tr.emp-row.open .chevron{transform:rotate(90deg);}
+  .comisiones-detail-row td{padding:0;border-bottom:1px solid var(--line);}
+  .comisiones-detail{display:none;padding:6px 6px 14px 24px;}
+  .comisiones-detail.open{display:block;}
+  .comisiones-detail .d-row{display:flex;justify-content:space-between;font-size:13px;color:var(--ink-soft);padding:5px 0;}
+  .comisiones-detail .d-row span:first-child{color:var(--ink);}
 
   @media (max-width:760px){
     .admin-layout{flex-direction:column;}
@@ -704,14 +713,23 @@ function renderComisiones(){
   const totalComision = filas.reduce((s,f)=> s + f.comision, 0);
   const sinAsignar = turnosSemana.filter(t => !t.empleada).length;
 
-  tbody.innerHTML = filas.map(f => `
-    <tr>
-      <td>${f.nombre}</td>
-      <td>${f.count}</td>
-      <td>${money(f.facturado)}</td>
-      <td>${money(f.comision)}</td>
-    </tr>
-  `).join("") + `
+  tbody.innerHTML = filas.map(f => {
+    const suyos = turnosSemana.filter(t => t.empleada === f.nombre).sort((a,b)=> a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+    const detalle = suyos.length
+      ? suyos.map(t => `<div class="d-row"><span>${t.date} · ${t.name} · ${t.service}</span><span>${money(t.price)}</span></div>`).join("")
+      : `<div class="d-row"><span>Sin turnos esta semana.</span></div>`;
+    return `
+      <tr class="emp-row" data-emp="${f.nombre}">
+        <td><span class="chevron">▸</span>${f.nombre}</td>
+        <td>${f.count}</td>
+        <td>${money(f.facturado)}</td>
+        <td>${money(f.comision)}</td>
+      </tr>
+      <tr class="comisiones-detail-row">
+        <td colspan="4"><div class="comisiones-detail" id="detalle-${f.nombre.replace(/\s+/g,'-')}">${detalle}</div></td>
+      </tr>
+    `;
+  }).join("") + `
     <tr class="total-row">
       <td>Total</td>
       <td>${turnosSemana.length - sinAsignar}</td>
@@ -719,6 +737,14 @@ function renderComisiones(){
       <td>${money(totalComision)}</td>
     </tr>
   ` + (sinAsignar ? `<tr><td colspan="4" class="empty">${sinAsignar} turno${sinAsignar===1?"":"s"} hecho${sinAsignar===1?"":"s"} sin empleada asignada, no entra${sinAsignar===1?"":"n"} en el cálculo.</td></tr>` : "");
+
+  tbody.querySelectorAll("tr.emp-row").forEach(row=>{
+    row.onclick = ()=>{
+      const detalle = document.getElementById(`detalle-${row.dataset.emp.replace(/\s+/g,'-')}`);
+      detalle.classList.toggle("open");
+      row.classList.toggle("open");
+    };
+  });
 }
 
 /* ---------------- SECCION "CLIENTAS" ---------------- */
