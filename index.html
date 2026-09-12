@@ -49,6 +49,7 @@
     <p class="sub" id="modal-service"></p>
     <form id="booking-form">
       <div class="field"><label>Nombre</label><input type="text" id="f-name" required></div>
+      <div class="field"><label>WhatsApp</label><input type="tel" id="f-phone" placeholder="Ej: 3764123456" required></div>
       <div class="field"><label>Fecha</label><input type="date" id="f-date" required></div>
       <div class="field"><label>Hora</label>
         <select id="f-time" required disabled>
@@ -242,9 +243,10 @@ function showToast(msg){
 document.getElementById("booking-form").onsubmit = async (e)=>{
   e.preventDefault();
   const name = document.getElementById("f-name").value.trim();
+  const phone = document.getElementById("f-phone").value.trim();
   const date = document.getElementById("f-date").value;
   const time = document.getElementById("f-time").value;
-  if(!pendingService || !name || !date || !time) return;
+  if(!pendingService || !name || !phone || !date || !time) return;
 
   // Chequeo final por si alguien más reservó ese horario justo ahora
   const stillFree = !(await getBookedTimes(date)).includes(time);
@@ -255,7 +257,7 @@ document.getElementById("booking-form").onsubmit = async (e)=>{
   }
 
   const { error } = await supabaseClient.from("turnos").insert({
-    name, date, time,
+    name, phone, date, time,
     service: pendingService.name,
     category: pendingService.category,
     price: pendingService.price,
