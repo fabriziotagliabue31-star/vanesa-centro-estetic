@@ -592,6 +592,17 @@ document.getElementById("cal-next").onclick = ()=>{
   renderCalendar();
 };
 
+function statusColors(status){
+  const map = {
+    pendiente:  { bg: "#F1E4D2", color: "#8a5a1f" }, // naranja - falta señar
+    "señado":   { bg: "#E8DFF0", color: "#6b4d8f" },
+    confirmado: { bg: "#DFE7D8", color: "var(--sage-dark)" }, // verde
+    hecho:      { bg: "#D8E3E7", color: "#3b5a63" },
+    cancelado:  { bg: "#F5D9D9", color: "#9c3d3d" }, // rojo
+  };
+  return map[status] || { bg: "var(--bg)", color: "var(--ink)" };
+}
+
 function renderCalendar(){
   const label = calendarMonth.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
   document.getElementById("cal-month-label").textContent = label;
@@ -622,7 +633,10 @@ function renderCalendar(){
     const dateStr = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
     const dayTurnos = (turnosByDay[day] || []).sort((a,b)=> a.time.localeCompare(b.time));
     const isToday = dateStr === today;
-    const chips = dayTurnos.slice(0,3).map(t => `<div class="day-chip">${t.time.slice(0,5)} ${t.name}</div>`).join("");
+    const chips = dayTurnos.slice(0,3).map(t => {
+      const c = statusColors(t.status);
+      return `<div class="day-chip" style="background:${c.bg};color:${c.color};">${t.time.slice(0,5)} ${t.name}</div>`;
+    }).join("");
     const more = dayTurnos.length > 3 ? `<div class="day-more">+${dayTurnos.length - 3} más</div>` : "";
     html += `
       <div class="calendar-day${isToday ? " today" : ""}" data-date="${dateStr}">
