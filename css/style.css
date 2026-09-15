@@ -91,4 +91,7 @@ td{padding:12px 6px;border-bottom:1px solid var(--line);}
 .status-hecho{background:#D8E3E7;color:#3b5a63;}
 .status-pendiente{background:#F1E4D2;color:#8a5a1f;}
 .status-confirmado{background:#DFE7D8;color:var(--sage-dark);}
+.status-señado{background:#E8DFF0;color:#6b4d8f;}
+.status-cancelado{background:#F5D9D9;color:#9c3d3d;}
+tr.is-cancelado, .hoy-item.is-cancelado{opacity:.55;}
 .empty{color:var(--ink-soft);font-size:14px;padding:20px 0;}
