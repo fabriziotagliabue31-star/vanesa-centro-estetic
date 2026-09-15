@@ -491,6 +491,7 @@ function renderHoy(){
         <span>${t.service}  ·  ${money(t.price)}</span>
       </div>
       ${empleadaSelectHtml(t)}
+      ${señaBtnHtml(t)}
       ${recordarBtnHtml(t)}
       <select class="status-pill status-${t.status}" data-id="${t.id}">
         <option value="pendiente" ${t.status === "pendiente" ? "selected" : ""}>pendiente</option>
@@ -510,6 +511,7 @@ function renderHoy(){
     el.onclick = ()=> openClienteModal(el.dataset.name);
   });
   bindRecordarButtons(wrap);
+  bindSeñaButtons(wrap);
   bindEmpleadaSelects(wrap);
 }
 
@@ -545,6 +547,29 @@ function bindRecordarButtons(container){
       if(!t) return;
       const msg = encodeURIComponent(
         `Hola ${t.name}! Te escribimos de Vanesa Centro Estetic para recordarte tu turno de ${t.service} el ${t.date} a las ${t.time.slice(0,5)}. ¡Te esperamos!`
+      );
+      window.open(`https://wa.me/${normalizePhone(t.phone)}?text=${msg}`, "_blank");
+    };
+  });
+}
+
+/* ---------------- PEDIR SEÑA POR WHATSAPP ---------------- */
+const SEÑA_MONTO = 25000;
+const SEÑA_ALIAS = "fabriziotagliabue";
+const SEÑA_TITULAR = "Fabrizio Nicolas Tagliabue";
+
+function señaBtnHtml(t){
+  if(!t.phone) return "";
+  return `<button class="btn-recordar" data-seña-id="${t.id}">Pedir seña</button>`;
+}
+
+function bindSeñaButtons(container){
+  container.querySelectorAll("[data-seña-id]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const t = ALL_TURNOS.find(x => x.id == btn.dataset.señaId);
+      if(!t) return;
+      const msg = encodeURIComponent(
+        `Hola ${t.name}! Para confirmar tu turno de ${t.service} el ${t.date} a las ${t.time.slice(0,5)} necesitamos una seña de ${money(SEÑA_MONTO)}.\nAlias: ${SEÑA_ALIAS} (a nombre de ${SEÑA_TITULAR}).\nApenas transfieras, mandanos el comprobante y queda confirmado. ¡Gracias por elegir Vanesa Centro Estetic!`
       );
       window.open(`https://wa.me/${normalizePhone(t.phone)}?text=${msg}`, "_blank");
     };
@@ -624,6 +649,7 @@ function openDiaModal(dateStr){
         <span>${t.service} · ${money(t.price)}</span>
       </div>
       ${empleadaSelectHtml(t)}
+      ${señaBtnHtml(t)}
       ${recordarBtnHtml(t)}
       <select class="status-pill status-${t.status}" data-id="${t.id}">
         <option value="pendiente" ${t.status === "pendiente" ? "selected" : ""}>pendiente</option>
@@ -640,6 +666,7 @@ function openDiaModal(dateStr){
     };
   });
   bindRecordarButtons(wrap);
+  bindSeñaButtons(wrap);
   bindEmpleadaSelects(wrap);
 
   document.getElementById("dia-overlay").classList.add("open");
@@ -844,7 +871,7 @@ async function renderTurnos(){
         <td>${t.service}</td>
         <td>${empleadaSelectHtml(t)}</td>
         <td>${money(t.price)}</td>
-        <td>${recordarBtnHtml(t)}</td>
+        <td>${señaBtnHtml(t)} ${recordarBtnHtml(t)}</td>
         <td>
           <select class="status-pill status-${t.status}" data-id="${t.id}">
             <option value="pendiente" ${t.status === "pendiente" ? "selected" : ""}>pendiente</option>
@@ -860,6 +887,7 @@ async function renderTurnos(){
       };
     });
     bindRecordarButtons(agenda);
+    bindSeñaButtons(agenda);
     bindEmpleadaSelects(agenda);
   }
   renderCalendar();
