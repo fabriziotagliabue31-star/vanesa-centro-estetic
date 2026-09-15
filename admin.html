@@ -406,9 +406,10 @@ document.getElementById("period-filter").addEventListener("change", (e)=>{
 });
 
 function renderDashboard(){
+  const facturables = ALL_TURNOS.filter(t => t.status !== "cancelado");
   const list = selectedPeriod === "todos"
-    ? ALL_TURNOS
-    : ALL_TURNOS.filter(t => monthValue(t.date) === selectedPeriod);
+    ? facturables
+    : facturables.filter(t => monthValue(t.date) === selectedPeriod);
 
   const total = list.reduce((sum,t)=> sum + t.price, 0);
   const avgTicket = list.length ? Math.round(total / list.length) : 0;
@@ -425,7 +426,7 @@ function renderDashboard(){
 
   // Facturación por mes (siempre todo el histórico, para ver la tendencia completa)
   const byMonth = {};
-  ALL_TURNOS.forEach(t=>{
+  facturables.forEach(t=>{
     const k = monthKey(t.date);
     byMonth[k] = (byMonth[k]||0) + t.price;
   });
@@ -484,7 +485,7 @@ function renderHoy(){
   }
 
   wrap.innerHTML = list.map(t => `
-    <div class="hoy-item">
+    <div class="hoy-item ${t.status === 'cancelado' ? 'is-cancelado' : ''}">
       <div class="hoy-time">${t.time.slice(0,5)}</div>
       <div class="hoy-info">
         <b data-name="${t.name}">${t.name}</b>
@@ -495,8 +496,10 @@ function renderHoy(){
       ${recordarBtnHtml(t)}
       <select class="status-pill status-${t.status}" data-id="${t.id}">
         <option value="pendiente" ${t.status === "pendiente" ? "selected" : ""}>pendiente</option>
+        <option value="señado" ${t.status === "señado" ? "selected" : ""}>señado</option>
         <option value="confirmado" ${t.status === "confirmado" ? "selected" : ""}>confirmado</option>
         <option value="hecho" ${t.status === "hecho" ? "selected" : ""}>hecho</option>
+        <option value="cancelado" ${t.status === "cancelado" ? "selected" : ""}>cancelado</option>
       </select>
     </div>
   `).join("");
@@ -653,8 +656,10 @@ function openDiaModal(dateStr){
       ${recordarBtnHtml(t)}
       <select class="status-pill status-${t.status}" data-id="${t.id}">
         <option value="pendiente" ${t.status === "pendiente" ? "selected" : ""}>pendiente</option>
+        <option value="señado" ${t.status === "señado" ? "selected" : ""}>señado</option>
         <option value="confirmado" ${t.status === "confirmado" ? "selected" : ""}>confirmado</option>
         <option value="hecho" ${t.status === "hecho" ? "selected" : ""}>hecho</option>
+        <option value="cancelado" ${t.status === "cancelado" ? "selected" : ""}>cancelado</option>
       </select>
     </div>
   `).join("") : `<p class="empty">No hay turnos este día.</p>`;
@@ -777,7 +782,7 @@ function renderComisiones(){
 /* ---------------- SECCION "CLIENTAS" ---------------- */
 function renderClientasSection(filterText = ""){
   const byClient = {};
-  ALL_TURNOS.forEach(t=>{
+  ALL_TURNOS.filter(t => t.status !== "cancelado").forEach(t=>{
     if(!byClient[t.name]) byClient[t.name] = { count: 0, total: 0, lastDate: t.date };
     byClient[t.name].count += 1;
     byClient[t.name].total += t.price;
@@ -864,7 +869,7 @@ async function renderTurnos(){
   } else {
     emptyMsg.style.display = "none";
     agenda.innerHTML = ALL_TURNOS.map(t=>`
-      <tr>
+      <tr class="${t.status === 'cancelado' ? 'is-cancelado' : ''}">
         <td>${t.date}</td>
         <td>${t.time}</td>
         <td>${t.name}</td>
@@ -875,8 +880,10 @@ async function renderTurnos(){
         <td>
           <select class="status-pill status-${t.status}" data-id="${t.id}">
             <option value="pendiente" ${t.status === "pendiente" ? "selected" : ""}>pendiente</option>
+            <option value="señado" ${t.status === "señado" ? "selected" : ""}>señado</option>
             <option value="confirmado" ${t.status === "confirmado" ? "selected" : ""}>confirmado</option>
             <option value="hecho" ${t.status === "hecho" ? "selected" : ""}>hecho</option>
+            <option value="cancelado" ${t.status === "cancelado" ? "selected" : ""}>cancelado</option>
           </select>
         </td>
       </tr>`).join("");
