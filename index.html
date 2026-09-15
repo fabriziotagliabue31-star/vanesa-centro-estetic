@@ -196,7 +196,8 @@ async function getBookedTimes(date){
   const { data, error } = await supabaseClient
     .from("turnos")
     .select("time")
-    .eq("date", date);
+    .eq("date", date)
+    .neq("status", "cancelado"); // un turno cancelado libera ese horario
   if(error){ console.error(error); return []; }
   // normalizar a "HH:MM" (Supabase puede devolver "HH:MM:SS")
   return data.map(t => t.time.slice(0,5));
